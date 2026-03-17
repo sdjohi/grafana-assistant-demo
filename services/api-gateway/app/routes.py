@@ -26,7 +26,7 @@ async def create_order(items: list[dict]):
             timeout=30.0,
         )
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.json().get("detail", "Order service error"))
+        logger.warning("Order service returned %d", resp.status_code)
     return resp.json()
 
 
@@ -36,5 +36,5 @@ async def get_order(order_id: str):
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{ORDER_SERVICE_URL}/orders/{order_id}", timeout=10.0)
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.json().get("detail", "Order service error"))
+        logger.warning("Order service returned %d", resp.status_code)
     return resp.json()

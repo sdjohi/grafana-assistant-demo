@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,8 @@ from opentelemetry import trace
 from pyroscope.otel import PyroscopeSpanProcessor
 
 from app.routes import router
+
+logging.basicConfig(level=logging.INFO)
 
 
 @asynccontextmanager

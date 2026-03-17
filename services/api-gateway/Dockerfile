@@ -13,5 +13,4 @@ RUN uv sync --no-dev
 
 COPY services/api-gateway/app/ app/
 
-ENV OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
 CMD ["uv", "run", "opentelemetry-instrument", "--logs_exporter", "otlp", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
