@@ -9,15 +9,47 @@ services:
       - start
       - --uri
       - file:/flagd/flags.json
+
+  alloy:
+    build:
+      context: .
+      dockerfile: alloy/Dockerfile
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "12345:12345"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy
+    env_file:
+      - .env
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+
   inventory-service:
-    build: ./services/inventory-service
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
     ports:
       - "8002:8002"
     environment:
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8015
+      - OTEL_SERVICE_NAME=inventory-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
+      - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
+      - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}
+      - PYROSCOPE_TENANT_ID=dev
     depends_on:
       flagd:
+        condition: service_started
+      alloy:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
@@ -26,17 +58,30 @@ services:
       retries: 5
 
   order-service:
-    build: ./services/order-service
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
     ports:
       - "8001:8001"
     environment:
       - INVENTORY_SERVICE_URL=http://inventory-service:8002
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8015
+      - OTEL_SERVICE_NAME=order-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
+      - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
+      - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}
+      - PYROSCOPE_TENANT_ID=dev
     depends_on:
       inventory-service:
         condition: service_healthy
       flagd:
+        condition: service_started
+      alloy:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
@@ -45,16 +90,39 @@ services:
       retries: 5
 
   api-gateway:
-    build: ./services/api-gateway
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
     ports:
       - "8000:8000"
     environment:
       - ORDER_SERVICE_URL=http://order-service:8001
+      - OTEL_SERVICE_NAME=api-gateway
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
+      - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
+      - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}
+      - PYROSCOPE_TENANT_ID=dev
     depends_on:
       order-service:
         condition: service_healthy
+      alloy:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
       timeout: 3s
       retries: 5
+
+  load-generator:
+    build: ./load-generator
+    environment:
+      - GATEWAY_URL=http://api-gateway:8000
+      - REQUESTS_PER_SECOND=5
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
