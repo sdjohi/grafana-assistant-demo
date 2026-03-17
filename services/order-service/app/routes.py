@@ -4,8 +4,9 @@ import os
 
 import httpx
 from fastapi import APIRouter, HTTPException
+from openfeature import api
 
-from app.processing import process_order
+from app.processing import process_order, process_order_slow, leak_memory
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,6 @@ router = APIRouter()
 
 INVENTORY_SERVICE_URL = os.environ.get("INVENTORY_SERVICE_URL", "http://localhost:8002")
 
-# In-memory order store
 _orders: dict[str, dict] = {}
 
 
@@ -42,8 +42,20 @@ async def create_order(items: list[dict]):
             if not result["success"]:
                 raise HTTPException(status_code=409, detail=f"Insufficient stock for {item['item_id']}")
 
-    # Process the order
-    processed = process_order(order)
+    # Feature flag: slow processing
+    ff_client = api.get_client()
+    use_slow = ff_client.get_boolean_value("slow-order-processing", False)
+
+    if use_slow:
+        processed = process_order_slow(order)
+    else:
+        processed = process_order(order)
+
+    # Feature flag: memory leak
+    use_leak = ff_client.get_boolean_value("memory-leak", False)
+    if use_leak:
+        leak_memory(order)
+
     _orders[order_id] = processed
     logger.info("Order %s processed successfully", order_id)
     return processed

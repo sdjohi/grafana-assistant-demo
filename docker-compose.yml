@@ -1,8 +1,24 @@
 services:
+  flagd:
+    image: ghcr.io/open-feature/flagd:v0.11.3
+    ports:
+      - "8013:8013"
+    volumes:
+      - ./flagd:/flagd
+    command:
+      - start
+      - --uri
+      - file:/flagd/flags.json
   inventory-service:
     build: ./services/inventory-service
     ports:
       - "8002:8002"
+    environment:
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8015
+    depends_on:
+      flagd:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
       interval: 5s
@@ -15,9 +31,13 @@ services:
       - "8001:8001"
     environment:
       - INVENTORY_SERVICE_URL=http://inventory-service:8002
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8015
     depends_on:
       inventory-service:
         condition: service_healthy
+      flagd:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 5s

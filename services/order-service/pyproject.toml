@@ -6,4 +6,6 @@ dependencies = [
     "fastapi==0.115.13",
     "uvicorn==0.34.0",
     "httpx==0.28.1",
+    "openfeature-sdk==0.8.4",
+    "openfeature-provider-flagd==0.3.0",
 ]
