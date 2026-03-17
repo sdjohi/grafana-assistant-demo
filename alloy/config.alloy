@@ -9,12 +9,37 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
+    metrics = [otelcol.processor.resourcedetection.default.input]
+    logs    = [otelcol.processor.resourcedetection.default.input]
+    traces  = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+// Detect host.name and other system resource attributes
+otelcol.processor.resourcedetection "default" {
+  detectors = ["env", "system"]
+
+  system {
+    hostname_sources = ["os"]
+  }
+
+  output {
     metrics = [otelcol.processor.batch.default.input]
     logs    = [otelcol.processor.batch.default.input]
     traces  = [
+      otelcol.connector.host_info.default.input,
       otelcol.connector.spanmetrics.default.input,
       otelcol.processor.batch.default.input,
     ]
+  }
+}
+
+// Generate traces_host_info metric for Application Observability billing
+otelcol.connector.host_info "default" {
+  host_identifiers = ["host.name"]
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
   }
 }
 

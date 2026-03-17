@@ -13,4 +13,5 @@ dependencies = [
     "opentelemetry-instrumentation-logging>=0.50b0",
     "opentelemetry-instrumentation-system-metrics>=0.50b0",
     "pyroscope-io>=0.8.7",
+    "pyroscope-otel>=0.1",
 ]

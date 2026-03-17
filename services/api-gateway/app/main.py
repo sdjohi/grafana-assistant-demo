@@ -3,12 +3,18 @@ from contextlib import asynccontextmanager
 
 import pyroscope
 from fastapi import FastAPI
+from opentelemetry import trace
+from pyroscope.otel import PyroscopeSpanProcessor
 
 from app.routes import router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Link Pyroscope profiles to OTel trace spans
+    provider = trace.get_tracer_provider()
+    provider.add_span_processor(PyroscopeSpanProcessor())
+
     # Pyroscope
     pyroscope.configure(
         application_name="api-gateway",

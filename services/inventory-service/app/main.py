@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from openfeature import api
 from openfeature.contrib.provider.flagd import FlagdProvider
 from openfeature.contrib.provider.flagd.config import ResolverType
+from opentelemetry import trace
+from pyroscope.otel import PyroscopeSpanProcessor
 
 from app.routes import router
 
@@ -16,6 +18,10 @@ async def lifespan(app: FastAPI):
     flagd_host = os.environ.get("FLAGD_HOST", "localhost")
     flagd_port = int(os.environ.get("FLAGD_PORT", "8013"))
     api.set_provider(FlagdProvider(host=flagd_host, port=flagd_port, resolver_type=ResolverType.IN_PROCESS))
+
+    # Link Pyroscope profiles to OTel trace spans
+    provider = trace.get_tracer_provider()
+    provider.add_span_processor(PyroscopeSpanProcessor())
 
     # Pyroscope
     pyroscope.configure(
