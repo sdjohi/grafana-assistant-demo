@@ -16,6 +16,15 @@ INVENTORY_SERVICE_URL = os.environ.get("INVENTORY_SERVICE_URL", "http://localhos
 
 _orders: dict[str, dict] = {}
 
+# Shared HTTP client — created once at module load to avoid per-request
+# SSL context initialisation overhead (create_ssl_context / create_default_context).
+# Previously a new AsyncClient was instantiated inside create_order on every request,
+# which consumed ~34.8% of total CPU (Pyroscope, 2026-03-17).
+_http_client = httpx.AsyncClient(
+    limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+    timeout=10.0,
+)
+
 
 @router.get("/health")
 async def health():
@@ -29,18 +38,17 @@ async def create_order(items: list[dict]):
 
     logger.info("Creating order %s with %d items", order_id, len(items))
 
-    # Check inventory for each item
-    async with httpx.AsyncClient() as client:
-        for item in items:
-            resp = await client.post(
-                f"{INVENTORY_SERVICE_URL}/inventory/{item['item_id']}/reserve",
-                params={"quantity": item.get("quantity", 1)},
-            )
-            if resp.status_code != 200:
-                raise HTTPException(status_code=502, detail="Inventory service error")
-            result = resp.json()
-            if not result["success"]:
-                raise HTTPException(status_code=409, detail=f"Insufficient stock for {item['item_id']}")
+    # Check inventory for each item using the shared client
+    for item in items:
+        resp = await _http_client.post(
+            f"{INVENTORY_SERVICE_URL}/inventory/{item['item_id']}/reserve",
+            params={"quantity": item.get("quantity", 1)},
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail="Inventory service error")
+        result = resp.json()
+        if not result["success"]:
+            raise HTTPException(status_code=409, detail=f"Insufficient stock for {item['item_id']}")
 
     # Feature flag: slow processing
     ff_client = api.get_client()

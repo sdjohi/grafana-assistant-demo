@@ -7,7 +7,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "on"
+      "defaultVariant": "off"
     },
     "bad-inventory-config": {
       "state": "ENABLED",
