@@ -41,7 +41,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
-      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=grafana-ai-demo,service.version=0.1.0,deployment.environment=dev,service.instance.id=inventory-service-1,sdworx.tribe=products,sdworx.squad=sre
       - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
       - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
       - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}
@@ -71,7 +71,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
-      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=grafana-ai-demo,service.version=0.1.0,deployment.environment=dev,service.instance.id=order-service-1,sdworx.tribe=products,sdworx.squad=sre
       - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
       - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
       - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}
@@ -101,7 +101,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
-      - OTEL_RESOURCE_ATTRIBUTES=sdworx.tribe=products,sdworx.squad=sre
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=grafana-ai-demo,service.version=0.1.0,deployment.environment=dev,service.instance.id=api-gateway-1,sdworx.tribe=products,sdworx.squad=sre
       - PYROSCOPE_ENDPOINT=${GCLOUD_HOSTED_PYROSCOPE_URL}
       - PYROSCOPE_USER=${GCLOUD_HOSTED_PYROSCOPE_ID}
       - PYROSCOPE_PASSWORD=${GCLOUD_RW_API_KEY}

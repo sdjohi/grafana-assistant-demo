@@ -11,7 +11,68 @@ otelcol.receiver.otlp "default" {
   output {
     metrics = [otelcol.processor.batch.default.input]
     logs    = [otelcol.processor.batch.default.input]
-    traces  = [otelcol.processor.batch.default.input]
+    traces  = [
+      otelcol.connector.spanmetrics.default.input,
+      otelcol.processor.batch.default.input,
+    ]
+  }
+}
+
+// Generate R.E.D (Rate, Errors, Duration) metrics from traces for Application Observability
+otelcol.connector.spanmetrics "default" {
+  dimension {
+    name = "service.namespace"
+  }
+
+  dimension {
+    name = "service.version"
+  }
+
+  dimension {
+    name = "deployment.environment"
+  }
+
+  histogram {
+    explicit {
+      buckets = ["0.005s", "0.01s", "0.025s", "0.05s", "0.075s", "0.1s", "0.25s", "0.5s", "0.75s", "1s", "2.5s", "5s", "7.5s", "10s"]
+    }
+    unit = "s"
+  }
+
+  output {
+    metrics = [otelcol.processor.filter.drop_unneeded_span_metrics.input]
+  }
+}
+
+// Drop span metrics for internal spans (only keep SERVER, CLIENT, PRODUCER, CONSUMER)
+otelcol.processor.filter "drop_unneeded_span_metrics" {
+  error_mode = "ignore"
+
+  metrics {
+    datapoint = [
+      "IsMatch(metric.name, \"calls|duration\") and IsMatch(attributes[\"span.kind\"], \"SPAN_KIND_INTERNAL\")",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
+  }
+}
+
+// Promote resource attributes to metric datapoint attributes for Application Observability
+otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context    = "datapoint"
+    statements = [
+      "set(attributes[\"deployment.environment\"], resource.attributes[\"deployment.environment\"])",
+      "set(attributes[\"service.version\"], resource.attributes[\"service.version\"])",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
   }
 }
 
