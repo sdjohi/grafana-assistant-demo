@@ -2,7 +2,8 @@ import logging
 import os
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ async def create_order(items: list[dict]):
         )
     if resp.status_code != 200:
         logger.warning("Order service returned %d", resp.status_code)
-    return resp.json()
+    return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
 
 @router.get("/orders/{order_id}")
@@ -37,4 +38,4 @@ async def get_order(order_id: str):
         resp = await client.get(f"{ORDER_SERVICE_URL}/orders/{order_id}", timeout=10.0)
     if resp.status_code != 200:
         logger.warning("Order service returned %d", resp.status_code)
-    return resp.json()
+    return JSONResponse(content=resp.json(), status_code=resp.status_code)
