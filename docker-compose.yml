@@ -1,4 +1,24 @@
 services:
+  alloy:
+    build:
+      context: .
+      dockerfile: alloy/Dockerfile
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy
+    environment:
+      - GCLOUD_OTLP_ENDPOINT=${GCLOUD_OTLP_ENDPOINT}
+      - GCLOUD_INSTANCE_ID=${GCLOUD_INSTANCE_ID}
+      - GCLOUD_RW_API_KEY=${GCLOUD_RW_API_KEY}
+    command:
+      - run
+      - /etc/alloy/config.alloy
+    depends_on:
+      flagd:
+        condition: service_started
+
   flagd:
     image: ghcr.io/open-feature/flagd:v0.11.3
     ports:
@@ -9,24 +29,6 @@ services:
       - start
       - --uri
       - file:/flagd/flags.json
-
-  alloy:
-    build:
-      context: .
-      dockerfile: alloy/Dockerfile
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "12345:12345"
-    volumes:
-      - ./alloy/config.alloy:/etc/alloy/config.alloy
-    env_file:
-      - .env
-    command:
-      - run
-      - /etc/alloy/config.alloy
-      - --storage.path=/var/lib/alloy/data
-      - --server.http.listen-addr=0.0.0.0:12345
 
   inventory-service:
     build:
@@ -47,8 +49,6 @@ services:
       - PYROSCOPE_TENANT_ID=dev
     depends_on:
       flagd:
-        condition: service_started
-      alloy:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
@@ -79,8 +79,6 @@ services:
         condition: service_healthy
       flagd:
         condition: service_started
-      alloy:
-        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 5s
@@ -106,8 +104,6 @@ services:
     depends_on:
       order-service:
         condition: service_healthy
-      alloy:
-        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
